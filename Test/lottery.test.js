@@ -40,6 +40,9 @@ describe('Lottery Contract test', () => {
     assert.equal(players[0], accounts[1])
   })
   it('join Lottery with multiple users', async () => {
+    const contractBallance = await web3.eth.getBalance(lottery.options.address)
+    assert.equal(contractBallance, web3.utils.toWei('0', 'ether'))
+
     await lottery.methods
       .join()
       .send({ from: accounts[1], value: moneyEnough, gas: '1000000' })
@@ -52,6 +55,11 @@ describe('Lottery Contract test', () => {
     const players = await lottery.methods.participants().call({
       from: accounts[0],
     })
+    const contractBallanceAfter = await web3.eth.getBalance(
+      lottery.options.address,
+    )
+
+    assert.equal(contractBallanceAfter, web3.utils.toWei('6', 'ether'))
     assert.equal(3, players.length)
     assert.equal(players[0], accounts[1])
     assert.equal(players[1], accounts[2])
@@ -88,6 +96,8 @@ describe('Lottery Contract test', () => {
       .join()
       .send({ from: accounts[2], value: moneyEnough, gas: '1000000' })
     const initialBallance = await web3.eth.getBalance(accounts[2])
+    const contractBallance = await web3.eth.getBalance(lottery.options.address)
+    assert.equal(contractBallance, web3.utils.toWei('2', 'ether'))
     await lottery.methods.pickWinner().send({
       from: accounts[0],
       gas: '10000000',
@@ -96,5 +106,39 @@ describe('Lottery Contract test', () => {
     const difference = finalBalance - initialBallance
     assert(difference > web3.utils.toWei('1.8', 'ether'))
     assert(difference <= web3.utils.toWei('2', 'ether'))
+  })
+  it('resetting Lottery Balance', async () => {
+    await lottery.methods
+      .join()
+      .send({ from: accounts[2], value: moneyEnough, gas: '1000000' })
+
+    const contractBallance = await web3.eth.getBalance(lottery.options.address)
+    assert.equal(contractBallance, web3.utils.toWei('2', 'ether'))
+    await lottery.methods.pickWinner().send({
+      from: accounts[0],
+      gas: '10000000',
+    })
+    const finalBalance = await web3.eth.getBalance(lottery.options.address)
+    assert.equal(finalBalance, web3.utils.toWei('0', 'ether'))
+  })
+  it('resetting Players List', async () => {
+    await lottery.methods
+      .join()
+      .send({ from: accounts[2], value: moneyEnough, gas: '1000000' })
+    await lottery.methods
+      .join()
+      .send({ from: accounts[1], value: moneyEnough, gas: '1000000' })
+    const playersList = await lottery.methods.participants().call({
+      from: accounts[0],
+    })
+    assert.equal(2, playersList.length)
+    await lottery.methods.pickWinner().send({
+      from: accounts[0],
+      gas: '10000000',
+    })
+    const finalPlayersList = await lottery.methods.participants().call({
+      from: accounts[0],
+    })
+    assert.equal(0, finalPlayersList.length)
   })
 })
