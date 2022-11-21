@@ -4,7 +4,7 @@ pragma solidity ^0.8.17;
 
 contract Lottery {
     address public immutable manager;
-
+    address public lastWinner;
     address[] public players;
 
     constructor() {
@@ -32,6 +32,7 @@ contract Lottery {
     function pickWinner() public {
         require(msg.sender == manager, "Only Manager can call this function");
         uint256 index = random() % players.length;
+        lastWinner = players[index];
         address winner = players[index];
         payable(winner).transfer(address(this).balance);
         players = new address[](0);
